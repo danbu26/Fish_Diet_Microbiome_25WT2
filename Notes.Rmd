@@ -61,6 +61,6 @@ Check alpha_rarefaction curve with hindgut only, check the curve and determines 
 
 The ones have low read count: check if those are the ones missing from the PICRUST dataset; compare between PICRUST sample to the original sample to see if those "above" are all the ones PICRUST included
 
-
+Make boxplot for the functional abundances: carnivores vs omnivores for each one
 
 
