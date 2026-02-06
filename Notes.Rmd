@@ -51,4 +51,16 @@ Check filtering error in QIIME2 on the server to recover sample number. This can
 
 Possible defect in low-reads samples being filtered out; take a look at the sample depth and check those that are really low (below 1000), as they are hard for analysis. Do a histogram to check why some are randomly low in depth. Use sample_sums(), put it into a histogram and find those below 1000. Find out the reason why some of them have such a low sequencing depth.
 
+About a quarter of samples are below 1000 depth
+
+Look through the metadata: if a group of fish are all below 1000, then it would be beneficial to control for the depth variable
+
+Worst scenario, we need to control for that variable
+
+Check alpha_rarefaction curve with hindgut only, check the curve and determines the rarefaction depth
+
+The ones have low read count: check if those are the ones missing from the PICRUST dataset; compare between PICRUST sample to the original sample to see if those "above" are all the ones PICRUST included
+
+
+
 
