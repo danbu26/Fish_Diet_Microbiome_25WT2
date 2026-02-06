@@ -70,5 +70,14 @@ prj# → Ncbi → search project number → SRAsamples (roughly \>20) → send
 results to selector
 
 # Feb 5 - meeting
-pathway 
+Add annotation ko2kegg_abundance() to combine KO terms into bigger pathways; this can make teh tests smaller so the adjusted p values will not be as big 
+Try pathway file on the server: metacyte_abundance 
+Check filtering error in QIIME2 on the server to recover sample number 
+
+
+
+
+
+
+
 
