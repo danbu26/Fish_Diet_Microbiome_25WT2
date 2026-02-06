@@ -9,75 +9,46 @@ editor_options:
 
 ## Jan 15 - meeting
 
-Notes To do: Check previous paper on diet:
-<https://ojs.library.ubc.ca/index.php/UJEMI/article/view/199491/193097>
-\^figure out what they didn’t do; make a list, check out aims, then make
-the research question Choose body sites: Midgut? Hindgut? Skin? Gill?
-Choose one? Two?
+Notes To do: Check previous paper on diet: <https://ojs.library.ubc.ca/index.php/UJEMI/article/view/199491/193097> \^figure out what they didn’t do; make a list, check out aims, then make the research question Choose body sites: Midgut? Hindgut? Skin? Gill? Choose one? Two?
 
-Aims: Differential abundance random forest - predict what their diet is
-based on microbiome Looking at the beta diversity Diet categories:
-omnivores, carnivores, herbivores
+Aims: Differential abundance random forest - predict what their diet is based on microbiome Looking at the beta diversity Diet categories: omnivores, carnivores, herbivores
 
-Finish aim: possibly this term, aiming for the UJEMI submission deadline
-in the summer (May 15th)
+Finish aim: possibly this term, aiming for the UJEMI submission deadline in the summer (May 15th)
 
-URNCST - another platform to publish paper (if meets the deadline for
-submission) (as a backup)
+URNCST - another platform to publish paper (if meets the deadline for submission) (as a backup)
 
 For reviewers: three potential reviewers for peer review submission
 
-potential problem: many not much herbivores or omnivores possible
-solution: grouping and compare carnivores vs non-carnivores; subset some
-carnivores; aiming for 2 or 3 groups to compare (make groups for
-comparison smaller —\> easier to work with); predators vs non-predators;
-look up what types of diet if not specified in the dataset
+potential problem: many not much herbivores or omnivores possible solution: grouping and compare carnivores vs non-carnivores; subset some carnivores; aiming for 2 or 3 groups to compare (make groups for comparison smaller —\> easier to work with); predators vs non-predators; look up what types of diet if not specified in the dataset
 
-Mentorship: set up GitHub repo and set up a meeting time: 4pm on
-Thursday
+Mentorship: set up GitHub repo and set up a meeting time: 4pm on Thursday
 
-Summary Look metadata, check sample numbers filter out just midgut, and
-count numbers go through paper, see what they did and what they didn’t
-then develop research question and aims
+Summary Look metadata, check sample numbers filter out just midgut, and count numbers go through paper, see what they did and what they didn’t then develop research question and aims
 
-Filter for the midgut, determine some grouping Look through the analysis
-and see what they didn’t do: beta diversity core microbiome of the
-different groups differential abundance indicator taxa random forest
-alpha diversity (if different grouping) What they did do: alpha
-diversity (site this paper if they did it and we used it) Functional
-analysis (same here as above) (they only compared low trophic level, so
-we can also do this)
+Filter for the midgut, determine some grouping Look through the analysis and see what they didn’t do: beta diversity core microbiome of the different groups differential abundance indicator taxa random forest alpha diversity (if different grouping) What they did do: alpha diversity (site this paper if they did it and we used it) Functional analysis (same here as above) (they only compared low trophic level, so we can also do this)
 
 ## Jan 22 - meeting
 
-Where the omnivores are and where the carnivores are (location
-specificity → limitation?) If all the omnivores are the same type of
-fish
+Where the omnivores are and where the carnivores are (location specificity → limitation?) If all the omnivores are the same type of fish
 
 Try other tools as an option. Stay away from DSeq. MaAsLIN2 Linda ALDEX2
 
-Taxonomy: diversity and bar plots Functional analysis Differential
-abundance (at genus level?) ggPICRUST2 but create with ggplot - the plot
-is a lot nicer
+Taxonomy: diversity and bar plots Functional analysis Differential abundance (at genus level?) ggPICRUST2 but create with ggplot - the plot is a lot nicer
 
-Find another fish dataset and maybe combine together or use it for
-testing the RF model (Google Scholar, 16S Microbiome Fish, find public
-available fish datasets)
+Find another fish dataset and maybe combine together or use it for testing the RF model (Google Scholar, 16S Microbiome Fish, find public available fish datasets)
 
 Re-run QIIME2
 
-prj# → Ncbi → search project number → SRAsamples (roughly > 20) → send
-results to selector
+prj# → Ncbi → search project number → SRAsamples (roughly \> 20) → send results to selector
 
 # Feb 5 - meeting
-Add annotation ko2kegg_abundance() to combine KO terms into bigger pathways; this can make the tests smaller so the adjusted p values would not be as big 
+
+Add annotation ko2kegg_abundance() to combine KO terms into bigger pathways; this can make the tests smaller so the adjusted p values would not be as big
+
 Try pathway file on the server: metacyte_abundance 
-Check filtering error in QIIME2 on the server to recover sample number 
 
+Check filtering error in QIIME2 on the server to recover sample number. This can be due to low depth samples not being included. 
 
-
-
-
-
+Possible defect in low-reads samples being filtered out; take a look at the sample depth and check those that are really low (below 1000), as they are hard for analysis. Do a histogram to check why some are randomly low in depth. Use sample_sums(), put it into a histogram and find those below 1000. Find out the reason why some of them have such a low sequencing depth.
 
 
