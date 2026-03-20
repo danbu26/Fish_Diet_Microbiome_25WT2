@@ -1,0 +1,191 @@
+---
+title: "Cleaned_Basic"
+output: html_document
+---
+
+```{r call_out_required_R_packages}
+library(tidyverse)
+library(phyloseq)
+library(vegan)
+library(ggpubr)
+library(microbiome)
+library(indicspecies)
+library(writexl)
+library(ANCOMBC)
+library(ggVennDiagram)
+```
+
+```{r loading_required_dataframes & files}
+
+counts = read.delim("feature-table.txt", skip =1, row.names =1)
+
+taxonomy = read.delim("taxonomy.tsv", row.names = 1)
+
+metadata = read.delim("fish_metadata_cleaned.tsv")
+
+tree = read_tree("tree.nwk")
+
+```
+
+```{r building_up_phyloseq_object}
+
+# Filter to retain only hindgut samples & filter out samples that are strictly herbivorous & missing/subtle diets
+
+metadata_diet_types = metadata |> filter(sample_type %in% c("hindgut")) |> filter(!Diet %in% c("not applicable", "digs into substrate for food (inverts?)", "macroalgae", "herbivorous", "planktivore"))
+
+# Build a new column for Diet Categories (Diet_car_omn): Omnivores & Carnivores
+metadata_diet_types_mutated = metadata_diet_types |> mutate(Diet_car_omn = if_else(str_detect(Diet,regex( "algae|plant|seaweed|planktonon|opportunistic|coelenterates", ignore_case = TRUE)), "Omnivores", "Carnivores"), .after = Diet)
+
+# Summarize the counts of samples for each diet categories
+metadata_diet_types_mutated |> group_by(Diet_car_omn) |> summarize(count = n())
+
+# Make the rownames of metadata from previous steps a vector and use for selection of counts with corresponding samples
+included_names = metadata_diet_types_mutated[,1]
+
+colnames(counts) <- substr(colnames(counts), 2, nchar(colnames(counts))) # Select the Colnames from the Counts dataframe out, but remove the first letter ("X")
+
+counts_filtered = counts[, included_names]
+
+# Make the Sample ID column of the metadata to the rownames
+metadata_diet_types_mutated <- column_to_rownames(metadata_diet_types_mutated, "X.SampleID")
+
+# Formating the taxonomy ranks (taxonomic hierarchy)
+taxonomy_formatted = taxonomy |> separate(col = Taxon, 
+           into = c('Domain','Phylum','Class','Order',
+                    'Family','Genus','Species'),
+           sep=';', fill='right') |> 
+  select(-Confidence) |> mutate(across(everything(), ~ trimws(as.character(.))))
+
+# Building a function to tidy up taxonomy files (removes incomplete annotations of taxonomies, especially for removing taxonomic annotations that have only three characters: e.g. g__, but without the actual genus)
+two_character_values_replacement <- function(taxonomy_formatted) {
+  taxonomy_formatted[] <- lapply(taxonomy_formatted, function(col) {
+    if (is.factor(col)) {
+      col <- as.character(col)}
+if (is.character(col)) {
+      col[grepl("^[__A-Za-z]{3}$", col)] <- NA
+    }
+    return(col)
+  })
+  return(taxonomy_formatted)
+}
+
+# Apply the function to taxonomic file
+taxonomy_formatted_fixed = two_character_values_replacement(taxonomy_formatted)
+
+# Final steps to create phyloseq object
+taxonomy_fromatted_matrix = as.matrix(taxonomy_formatted_fixed)
+
+counts_formatted = counts_filtered |> as.matrix()
+
+ps_omn = phyloseq(sample_data(metadata_diet_types_mutated),
+              otu_table(counts_formatted, taxa_are_rows = T),
+              tax_table(taxonomy_fromatted_matrix),
+              tree)
+
+# Save the phyloseq object
+saveRDS(ps_omn,'phyloseq_taxonomy_Diet_omn.rds')
+
+```
+
+```{r indicator_species}
+
+# Use the pyloseq object and choose the genus as the taxonomic rank
+ps_genus_omn = tax_glom(ps_omn,'Genus')
+
+ps_relab_omn = transform(ps_genus_omn, 'compositional')
+ps_filt_omn = filter_taxa(ps_relab_omn, function(x) mean(x) > 0.0001, TRUE)
+otu_table = data.frame(otu_table(ps_filt_omn))
+set.seed(420)
+indval = multipatt( t(otu_table), 
+            cluster= ps_filt_omn@sam_data$Diet_car_omn,
+          control = how(nperm = 999))
+summary(indval, indvalcomp = TRUE)
+
+```
+
+```{r relative_abundnace_indicator_species}
+
+# Find relative abundance of each counts of samples
+count_relative_abundance = apply(counts_filtered, 2, function(x)x/sum(x))
+
+# Make each count relative abundance higher than 0 (positive) to 1 and filter for samples having positive abundance higher than 4
+count_relative_abundance[count_relative_abundance>0] =1
+
+rowsum_abundance_cutoff_4 = rowSums(count_relative_abundance)|> as.data.frame() |> filter(rowSums(count_relative_abundance) >= 4) |> rownames_to_column("sample_name")
+
+# Filter for rows (taxa) in counts file that matches the cutoff of 4
+counts_truncated_relative_abundance = counts_filtered[rowsum_abundance_cutoff_4$sample_name,]
+
+counts_truncated_formatted_relative_abundnace = counts_truncated_relative_abundance |> as.matrix()
+
+
+# Remake the phyloseq object for new filtered counts matrix
+ps_relative_abundnace_4 = phyloseq(sample_data(metadata_diet_types_mutated),
+              otu_table(counts_truncated_formatted_relative_abundnace, taxa_are_rows = T),
+              tax_table(taxonomy_fromatted_matrix),
+              tree)
+
+saveRDS(ps_relative_abundnace_4,'phyloseq_taxonomy_relative_abundance_4.rds')
+
+
+
+# Re-execute the indicator species for new phyloseq object at Genus level
+ps_genus_relative_abundnace_4 = tax_glom(ps_relative_abundnace_4,'Genus')
+
+ps_relab_relative_4 = transform(ps_genus_relative_abundnace_4, 'compositional')
+ps_filt_relative_4 = filter_taxa(ps_relab_relative_4, function(x) mean(x) > 0.0001, TRUE)
+otu_table_relative_4 = data.frame(otu_table(ps_filt_relative_4))
+
+set.seed(420)
+
+indval = multipatt( t(otu_table_relative_4), 
+            cluster= ps_filt_relative_4@sam_data$Diet_car_omn,
+          control = how(nperm = 999) )
+summary(indval, indvalcomp = TRUE)
+
+```
+
+```{r core_microbiome_analysis}
+
+set.seed(420)
+
+# run the core microbiome analysis for the phyloseq object without abundnace filtering
+psrare = rarefy_even_depth(ps_omn, sample.size = 1000) # sample size = 1000 is based on alpha rarefraction curve
+ps_rare_relab = transform(psrare, 'compositional')
+ps_rare_relab_omn = tax_glom(ps_rare_relab, "Genus")
+
+Carnivores = subset_samples(ps_rare_relab_omn, Diet_car_omn == "Carnivores")
+Omnivores = subset_samples(ps_rare_relab_omn, Diet_car_omn == "Omnivores")
+
+
+Genus_Carnivores = core_members(Carnivores, detection=0.001, prevalence = 0.2)
+Genus_Omnivores = core_members(Omnivores, detection=0.001, prevalence = 0.2)
+
+Genus_Omnivores
+
+ggVennDiagram_plot = ggVennDiagram(list(Genus_Carnivores, Genus_Omnivores), set_size = 6, category.names = c("C","O") )+scale_fill_gradient(low= "aliceblue", high = "lightskyblue1")
+
+ggVennDiagram_plot
+
+# run the core microbiome analysis for the phyloseq object that has the cutoff of 4 in relative abundnace
+set.seed(420)
+
+psrare_relative_4 = rarefy_even_depth(ps_relative_abundnace_4, sample.size = 1000) # sample size = 1000 is based on alpha rarefaction curve
+ps_rare_relab_relative_4 = transform(psrare_relative_4, 'compositional')
+
+ps_rare_relab_omn_relative_4 = tax_glom(ps_rare_relab_relative_4, "Genus")
+
+Carnivores_relative_4 = subset_samples(ps_rare_relab_omn_relative_4, Diet_car_omn == "Carnivores")
+Omnivores_relative_4 = subset_samples(ps_rare_relab_omn_relative_4, Diet_car_omn == "Omnivores")
+
+
+Genus_Carnivores_relative_4 = core_members(Carnivores_relative_4, detection=0.001, prevalence = 0.2)
+Genus_Omnivores_relative_4 = core_members(Omnivores_relative_4, detection=0.001, prevalence = 0.2)
+
+ggVennDiagram_plot_relative_4 = ggVennDiagram(list(Genus_Carnivores_relative_4, Genus_Omnivores_relative_4), set_size = 6, category.names = c("C","O") )+scale_fill_gradient(low= "aliceblue", high = "lightskyblue1")
+
+ggVennDiagram_plot_relative_4
+
+```
+
+
