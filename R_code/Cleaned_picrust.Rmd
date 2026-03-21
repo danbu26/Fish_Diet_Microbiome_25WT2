@@ -1,0 +1,99 @@
+---
+title: "Cleaned_picrust"
+output: html_document
+---
+
+```{r library_packages}
+
+library(tidyverse)
+library(phyloseq)
+library(ggpicrust2)
+
+```
+
+```{r loading_files}
+
+# loading phyloseq object
+meta = readRDS('phyloseq_taxonomy_Diet_omn.rds') %>% .@sam_data |> data.frame() |>  rownames_to_column('sample_name')
+
+#loading PICRUSt2 results of basic ko
+ko_basic = read.delim('new_picrust_KO.tsv', row.names = 1)
+
+# loading PICRUSt2 results of metacyc
+metacyc =  read.delim('new_picrust_pathways.tsv', row.names = 1)
+
+# loading ko abundance
+ko2kegg_abundance = ko2kegg_abundance('new_picrust_KO.tsv')
+
+# filter the metadata for each pairwise analysis
+CAR_OMN_Diet_meta = meta |> filter(Diet_car_omn == c("Carnivores", "Omnivores"))
+
+# Call a new name for metadata for ko2kegg_abundance
+
+ko2kegg_abundance_meta = CAR_OMN_Diet_meta
+
+# Make sure the sample name corresponds with each other by adding an "X" to sample name in phyloseq object
+CAR_OMN_Diet_meta$sample_name <- paste0("X", CAR_OMN_Diet_meta$sample_name)
+
+# extract the sample names from each pairwise metadata
+CAR_OMN_sample_name = CAR_OMN_Diet_meta$sample_name
+
+# Call the extracted sample names a new names and remove the X in the front of each sample name (columns) to meet the identical sample names in ko2kegg_abundance tsv data frame
+
+CAR_OMN_sample_name_ko2kegg_abundance = CAR_OMN_sample_name
+
+fixed_ko2_sample_names = substr(CAR_OMN_sample_name_ko2kegg_abundance, 2, nchar(CAR_OMN_sample_name_ko2kegg_abundance))
+
+# use the extracted sample names to subset ko (basic) results from PICRUSt2 results that are relevant to the pairwise analysis
+CAR_OMN_ko_basic = ko_basic[,CAR_OMN_sample_name]
+
+# use the extracted sample names to subset ko (ko2kegg_abundnace) results from PICRUSt2 results that are relevant to the pairwise analysis
+CAR_OMN_ko2_abundance = ko2kegg_abundance[,fixed_ko2_sample_names]
+
+# use the extracted sample names to subset MetaCyc results from PICRUSt2 results that are relevant to the pairwise analysis
+CAR_OMN_metacyc = metacyc[,CAR_OMN_sample_name]
+
+
+```
+
+```{r ko_basic}
+
+daa_results_CAR_OMN_basic = pathway_daa(abundance = CAR_OMN_ko_basic,
+                             metadata = CAR_OMN_Diet_meta, 
+                             group = "Diet_car_omn", 
+                             daa_method = "LinDA", 
+                             select = NULL, reference = NULL)
+
+# Confirmation of no statistical significance (p_adjust equal or less than 0.05) in ko (basic) pathway analysis
+No_statistical_significance_ko_basic = filter(daa_results_CAR_OMN_basic, p_adjust <= 0.05)
+
+```
+
+```{r ko2kegg_abundance}
+
+daa_results_CAR_OMN_ko2kegg_abundance = pathway_daa(abundance = CAR_OMN_ko2_abundance,
+                             metadata = ko2kegg_abundance_meta, 
+                             group = "Diet_car_omn", 
+                             daa_method = "LinDA", 
+                             select = NULL, reference = NULL)
+
+# Confirmation of no statistical significance (p_adjust equal or less than 0.05) in ko2kegg_abundance pathway analysis
+No_statistical_significance_ko2kegg = filter(daa_results_CAR_OMN_ko2kegg_abundance, p_adjust <= 0.05)
+
+```
+
+```{r MetaCyc_Pathway}
+
+daa_results_CAR_OMN_metacyc = pathway_daa(abundance = CAR_OMN_metacyc,
+                             metadata = CAR_OMN_Diet_meta, 
+                             group = "Diet_car_omn", 
+                             daa_method = "LinDA", pathway = "Metacyc",  ko_to_kegg = FALSE,
+                             select = NULL, reference = NULL)
+
+# Confirmation of no statistical significance (p_adjust equal or less than 0.05) in MetaCyc pathway analysis
+No_statistical_significance_MetaCyc = filter(daa_results_CAR_OMN_ko2kegg_abundance, p_adjust <= 0.05)
+
+```
+
+
+
