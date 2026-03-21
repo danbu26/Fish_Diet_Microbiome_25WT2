@@ -1,0 +1,43 @@
+---
+title: "Qiime_PICRUSt"
+output: html_document
+---
+
+# use the classifiers to construct the taxonomy qzv
+qiime feature-classifier classify-sklearn \
+  --i-classifier /datasets/classifiers/gg-2024.09.backbone.v4-515-806.nb.sklearn-1.4.2.qza \
+  --i-reads rep-seqs.qza \
+  --o-classification taxonomy.qza
+
+# make a taxonomy qzv for visualization from the qza file
+qiime metadata tabulate \
+  --m-input-file taxonomy.qza \
+  --o-visualization taxonomy.qzv
+
+# Filter out the table.qza with less than 5 frequency
+qiime feature-table filter-features \
+  --i-table table.qza \
+  --p-min-frequency 5 \
+  --o-filtered-table feature-frequency-filtered-table.qza
+
+# make a new directory for picrust analysis
+mkdir picrust
+
+# move feature-frequency-filtered-table.qza & rep-seqs.qza into new "picrust" directory
+qiime tools export \
+  --input-path feature-frequency-filtered-table.qza \
+  --output-path picrust
+  
+qiime tools export \
+  --input-path rep-seqs.qza \
+  --output-path picrust
+
+# deactivate the qiime environment and activate picrust2 environment
+conda deactivate
+conda activate picrust2
+
+# run the picrust analysis
+picrust2_pipeline.py \
+  -s picrust/dna-sequences.fasta \
+  -i picrust/feature-table.biom \
+  -o picrust_out
